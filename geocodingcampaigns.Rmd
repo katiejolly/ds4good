@@ -1,0 +1,156 @@
+---
+title: 'On the campaign trail: a map of the last 10 weeks!'
+author: "Katie Jolly"
+date: "March 28, 2017"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+```{r}
+# Packages needed
+
+library(RCurl)
+library(leaflet)
+library(acs)
+```
+
+
+This tutorial is meant to teach you how to take latitutde and longitude points from a CSV and turn them into a meaningful map! Geocoding is a highly useful and valuable skill for data science and visualization. We will be creating two maps: one for Clinton and the other for Trump. The maps will show all of their campaign stops during the last 10 weeks before the election. The data comes from Fivethirtyeight, but the beauty of coordinates is that anyone could make this dataset themselves! For example, you could easily make a map during a natural disaster of all of the relief centers given their coordinates. (This is actually a quite common use of geocoding!) I hope you find this to be interesting! Let me know if you have any questions. 
+
+# Getting the data
+
+Both CSVs are available on Fivethirtyeight's Github site (my go-to for data!!). Here's the link: [CSVs](https://github.com/fivethirtyeight/data/tree/master/presidential-campaign-trail).
+
+From Github, we will read the csv into R from the raw form. 
+
+```{r}
+x <- getURL("https://raw.githubusercontent.com/fivethirtyeight/data/master/presidential-campaign-trail/clinton.csv")
+clinton <- read.csv(text = x)
+y <- getURL("https://raw.githubusercontent.com/fivethirtyeight/data/master/presidential-campaign-trail/trump.csv")
+trump <- read.csv(text = y)
+```
+
+
+The data is from a story on their campaign stops, I recommend you read it first! ([link](https://fivethirtyeight.com/features/the-last-10-weeks-of-2016-campaign-stops-in-one-handy-gif/)). Their maps move and thus are cool. Ours will be static, but such is life. Interactive another week! 
+
+# Exploring the data
+
+Before doing any visualization, we should look at the structure of the data. Look at the output below and add anything else you think might be important!
+
+```{r}
+#look at the structure of the data
+str(clinton)
+str(trump)
+
+# look at a summary for some more detail
+summary(clinton)
+summary(trump)
+```
+
+Looking at these numbers, we can see right away that Trump had more campaign stops during those weeks than Clinton did. The summary of latitude and longitude aren't meaningful in this format. 
+
+# Let's start making a map: the fun part!! 
+
+The idea behind what we are doing is that the program inherently knows where coordinates are. There's a whole science behind that, but that would be too long to include here. Let me know if you're interested in learning more! Anyway, by including the coordinates, the data points will know where they are in space! That's really cool in my opinion. 
+
+### Adding points to a map
+
+```{r}
+# putting data on the Clinton map
+clintonMap <-leaflet(data = clinton) %>% addTiles() %>% addMarkers(lng = ~lng, lat = ~lat, popup= ~as.character(location))
+
+clintonMap
+
+# for the popup, we are adding the name of the location. You could also add the date instead! Whatever you think works best. We can go more into popups later. 
+```
+
+Try clicking the icons! 
+
+```{r}
+# putting data on the Trump map
+trumpMap <- leaflet(data = trump) %>% addTiles() %>% addMarkers(lng = ~lng, lat = ~lat, popup= ~as.character(location))
+
+trumpMap
+```
+
+Say we wanted to change the icons on the Trump map to red, as is traditional to represent the Republican party. 
+
+There's a plug-in available for Leaflet called Awesome Markers. It helps customize the way you label your map. There are a few libraries of icons to choose from, but I have always found the ion library to be sufficient. In the list of links I am including at the bottom, I'll link to the other libraries as well. For now, check out the [lIon Library](http://ionicons.com/)!
+
+```{r}
+trumpIcon <- awesomeIcons(icon = 'pinpoint', library = 'ion', iconColor= 'white', markerColor= 'red')
+leaflet(data = trump) %>% addTiles() %>% addAwesomeMarkers(~lng, ~lat, label = ~location, icon = trumpIcon)
+```
+
+### Clustering data points
+
+There are so many points on these maps! It can be hard to distinguish between different points. To help with this problem, we can look at ways of clustering points to be more readable. Let's start with the Clinton map. We will use the [Leaflet.markercluster plug-in](https://github.com/Leaflet/Leaflet.markercluster).
+
+```{r}
+leaflet(data = clinton) %>% addTiles() %>% addMarkers(clusterOptions = markerClusterOptions(), popup= ~as.character(location))
+```
+
+```{r}
+leaflet(data = trump) %>% addTiles() %>% addMarkers(clusterOptions = markerClusterOptions(), popup= ~as.character(location))
+```
+
+# More to do!
+
+## Adding demographic data
+
+A common comment on Trump's campaign was that it tended to overwhelmingly appeal to white voters. One way you could then start to explore this is to map the percent white for counties around the country on a map with the location of campaign stops. You would do this for both Clinton and Trump's campaign maps to start to discuss similarities and differences. Statistically, you could more rigorously analyze the data. But that's for another day. 
+
+I will be using the same codes we used in the other tutorial to bring in ACS data. Then, I will add that data to both of our maps. 
+
+```{r}
+api.key.install("8b59ff9836fe7642510e5cef4b0a055e053a7113")
+
+#Insert your own key! You can do this by typing into google "ACS API." The first link that will pop up will take you to a page that requests your email and organization and then sends you a key. 
+
+geo = geo.make(state = '*', county = '*', combine = FALSE)
+white_data <- acs.fetch(endyear = 2015, span = 5, geography = geo , variable = "B02001_002", col.names= 'pretty')
+dim(white_data)
+
+# acs.fetch() is a function that interacts with the ACS API. Endyear is the last year (of 5-year estimates usually) that you want your data. In this example we wanted data ending in 2015. 
+
+# The variable number is the ID of the variable you want from the ACS. These tables can be found on the ACS website (American fact finder). 
+
+names(attributes(white_data))
+
+attr(white_data, "acs.colnames")
+
+# Creating a data frame from what we fetched in the previous line
+
+income_df <- data.frame(paste0(str_pad(white_data@geography$NAME, 3, "left", pad="0")),(white_data@estimate), (white_data@geography$county))
+
+# The @ sign in the calls is a way to access the geography of that particular value.
+
+
+colnames(income_df) <- c("County, State", "hhincome")
+
+# Joining the tracts (from earlier) with the household income data using geo_join based on the common variable "GEOID"
+
+ramseyCnty_merged <- geo_join(ramseyCnty, income_df, "GEOID", "GEOID")
+
+# As a general rule of thumb: geo_join(spatial_data, data_frame, by_sp, by_df)
+
+```
+
+
+# Helpful links :) 
+
+[Leaflet for R](https://rstudio.github.io/leaflet/)
+
+[CRAN Leaflet](https://cran.r-project.org/web/packages/leaflet/leaflet.pdf)
+
+[Ion icons](http://ionicons.com/)
+
+
