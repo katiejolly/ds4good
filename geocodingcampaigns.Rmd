@@ -110,7 +110,7 @@ A common comment on Trump's campaign was that it tended to overwhelmingly appeal
 
 I will be using the same codes we used in the other tutorial to bring in ACS data. Then, I will add that data to both of our maps. 
 
-# This part is still in progress. 
+This part is still in progress. 
 
 
 # Helpful links :) 
