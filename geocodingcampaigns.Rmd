@@ -110,39 +110,7 @@ A common comment on Trump's campaign was that it tended to overwhelmingly appeal
 
 I will be using the same codes we used in the other tutorial to bring in ACS data. Then, I will add that data to both of our maps. 
 
-```{r}
-api.key.install("8b59ff9836fe7642510e5cef4b0a055e053a7113")
-
-#Insert your own key! You can do this by typing into google "ACS API." The first link that will pop up will take you to a page that requests your email and organization and then sends you a key. 
-
-geo = geo.make(state = '*', county = '*', combine = FALSE)
-white_data <- acs.fetch(endyear = 2015, span = 5, geography = geo , variable = "B02001_002", col.names= 'pretty')
-dim(white_data)
-
-# acs.fetch() is a function that interacts with the ACS API. Endyear is the last year (of 5-year estimates usually) that you want your data. In this example we wanted data ending in 2015. 
-
-# The variable number is the ID of the variable you want from the ACS. These tables can be found on the ACS website (American fact finder). 
-
-names(attributes(white_data))
-
-attr(white_data, "acs.colnames")
-
-# Creating a data frame from what we fetched in the previous line
-
-income_df <- data.frame(paste0(str_pad(white_data@geography$NAME, 3, "left", pad="0")),(white_data@estimate), (white_data@geography$county))
-
-# The @ sign in the calls is a way to access the geography of that particular value.
-
-
-colnames(income_df) <- c("County, State", "hhincome")
-
-# Joining the tracts (from earlier) with the household income data using geo_join based on the common variable "GEOID"
-
-ramseyCnty_merged <- geo_join(ramseyCnty, income_df, "GEOID", "GEOID")
-
-# As a general rule of thumb: geo_join(spatial_data, data_frame, by_sp, by_df)
-
-```
+# This part is still in progress. 
 
 
 # Helpful links :) 
